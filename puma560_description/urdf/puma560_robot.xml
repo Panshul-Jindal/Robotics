@@ -1,82 +1,91 @@
 <mujoco model="Puma560">
-  <compiler angle="radian" meshdir="../meshes/"/>
+    <compiler angle="radian" meshdir="../meshes/"/>
 
-  <!-- ADD VISUAL AND LIGHTING DEFAULTS -->
-  <visual>
-    <headlight ambient="0.4 0.4 0.4" diffuse="0.8 0.8 0.8" specular="0.1 0.1 0.1"/>
-  </visual>
+    <visual>
+        <headlight ambient="0.4 0.4 0.4" diffuse="0.8 0.8 0.8" specular="0.1 0.1 0.1"/>
+    </visual>
 
-  <!-- =============================================================== -->
-  <!-- |  ASSETS: Declare all the mesh files needed for rendering     | -->
-  <!-- =============================================================== -->
-  <asset>
-    <mesh name="link1_mesh" file="puma_link1.stl" scale="0.0254 0.0254 0.0254" />
-    <mesh name="link2_mesh" file="puma_link2.stl" scale="0.0254 0.0254 0.0254" />
-    <mesh name="link3_mesh" file="puma_link3.stl" scale="0.0254 0.0254 0.0254" />
-    <mesh name="link4_mesh" file="puma_link4.stl" scale="0.0254 0.0254 0.0254" />
-    <mesh name="link5_mesh" file="puma_link5.stl" scale="0.0254 0.0254 0.0254" />
-    <mesh name="link6_mesh" file="puma_link6.stl" scale="0.0254 0.0254 0.0254" />
-    <mesh name="link7_mesh" file="puma_link7.stl" scale="0.0254 0.0254 0.0254" />
-  </asset>
+    <asset>
+        <mesh name="link1_mesh" file="puma_link1.stl" scale="0.0254 0.0254 0.0254"/>
+        <mesh name="link2_mesh" file="puma_link2.stl" scale="0.0254 0.0254 0.0254"/>
+        <mesh name="link3_mesh" file="puma_link3.stl" scale="0.0254 0.0254 0.0254"/>
+        <mesh name="link4_mesh" file="puma_link4.stl" scale="0.0254 0.0254 0.0254"/>
+        <mesh name="link5_mesh" file="puma_link5.stl" scale="0.0254 0.0254 0.0254"/>
+        <mesh name="link6_mesh" file="puma_link6.stl" scale="0.0254 0.0254 0.0254"/>
+        <mesh name="link7_mesh" file="puma_link7.stl" scale="0.0254 0.0254 0.0254"/>
+    </asset>
 
-  <worldbody>
-    <!-- ADD A FLOOR AND A LIGHT SOURCE -->
-    <light pos="0 0 3" dir="0 0 -1"/>
-    <geom type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1"/>
+    <worldbody>
+        <light pos="0 0 3" dir="0 0 -1"/>
+        <geom type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1"/>
 
-    <!-- The root of our robot, LINK 1 -->
-    <!-- Note: A static base link is often modeled implicitly or as part of the world -->
-    <geom type="mesh" mesh="link1_mesh" pos="0 0 0" euler="0 0 1.5707"/>
+        <!-- FIXED BASE BODY -->
+        <body name="link1" pos="0 0 0">
+            <inertial pos="0 0 0" mass="20" diaginertia="0.20 0.20 0.10"/>
+            <geom type="mesh" mesh="link1_mesh" euler="0 0 1.5707"/>
 
-    <body name="link2" pos="0 0 0.6718" quat="0.707107 0.707107 0 0">
-      <inertial pos="0 0 0" mass="17" diaginertia="0.35 0.35 0.1"/>
-      <joint name="j1" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
-      <!-- ATTACH THE VISUAL GEOMETRY -->
-      <geom type="mesh" mesh="link2_mesh" pos="0 0 -0.1" euler="0 0 0" rgba="0.8 0 0 0.8"/>
-      
-      <body name="link3">
-        <inertial pos="0 0 0" mass="5" diaginertia="0.1 0.1 0.05"/>
-        <joint name="j2" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-        <!-- ATTACH THE VISUAL GEOMETRY -->
-        <geom type="mesh" mesh="link3_mesh" pos="0 0 0.1936" euler="0 0 0" rgba="0 0 0.8 0.8"/>
+            <!-- LINK 2 -->
+            <body name="link2" pos="0 0 0.6718" quat="0.707107 0.707107 0 0">
+                <inertial pos="0 0 0" mass="17" diaginertia="0.40 0.40 0.20"/>
+                <joint name="j1" pos="0 0 0" axis="0 1 0" range="-3.14 3.14"
+                       damping="2" armature="0.01"/>
+                <geom type="mesh" mesh="link2_mesh" pos="0 0 -0.1" rgba="0.8 0 0 0.8"/>
 
-        <body name="link4" pos="0.4318 -0.0203 0.1501" quat="0.707107 0 0 -0.707107">
-          <inertial pos="0 0 0" mass="2" diaginertia="0.05 0.05 0.05"/>
-          <joint name="j3" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-          <!-- ATTACH THE VISUAL GEOMETRY -->
-          <geom type="mesh" mesh="link4_mesh" pos="0 0 0" euler="0 0 0" rgba="0 0.8 0 0.8"/>
-          
-          <body name="link5" quat="0.5 0.5 0.5 0.5">
-            <inertial pos="0 0 0" mass="1" diaginertia="0.02 0.02 0.02"/>
-            <joint name="j4" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-            <!-- ATTACH THE VISUAL GEOMETRY -->
-            <geom type="mesh" mesh="link5_mesh" pos="0 0 0.3621" euler="0 0 1.5707" rgba="0.8 0 0 0.8"/>
+                <!-- LINK 3 -->
+                <body name="link3">
+                    <inertial pos="0 0 0" mass="5" diaginertia="0.15 0.15 0.08"/>
+                    <joint name="j2" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"
+                           damping="2" armature="0.01"/>
+                    <geom type="mesh" mesh="link3_mesh" pos="0 0 0.1936" rgba="0 0 0.8 0.8"/>
 
-            <body name="link6" pos="0 0 0.4331" quat="0.707107 0.707107 0 0">
-              <inertial pos="0 0 0" mass="1" diaginertia="0.02 0.02 0.02"/>
-              <joint name="j5" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-              <!-- ATTACH THE VISUAL GEOMETRY -->
-              <geom type="mesh" mesh="link6_mesh" pos="0 0 0" euler="3.1415 0 1.5707" rgba="0 0.8 0 0.8"/>
+                    <!-- LINK 4 -->
+                    <body name="link4" pos="0.4318 -0.0203 0.1501" quat="0.707107 0 0 -0.707107">
+                        <inertial pos="0 0 0" mass="2" diaginertia="0.06 0.06 0.03"/>
+                        <joint name="j3" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"
+                               damping="2" armature="0.01"/>
+                        <geom type="mesh" mesh="link4_mesh" pos="0 0 0" rgba="0 0.8 0 0.8"/>
 
-              <body name="link7" pos="0 0.0558 0" quat="0.707107 -0.707107 0 0">
-                <inertial pos="0 0 0" mass="0.5" diaginertia="0.01 0.01 0.01"/>
-                <joint name="j6" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-                <!-- ATTACH THE VISUAL GEOMETRY -->
-                <geom type="mesh" mesh="link7_mesh" pos="0 0 -0.010" euler="0 0 0" rgba="0 0 0.8 0.8"/>
-              </body>
+                        <!-- LINK 5 -->
+                        <body name="link5" quat="0.5 0.5 0.5 0.5">
+                            <inertial pos="0 0 0" mass="1" diaginertia="0.03 0.03 0.02"/>
+                            <joint name="j4" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"
+                                   damping="3" armature="0.02"/>
+                            <geom type="mesh" mesh="link5_mesh" pos="0 0 0.3621" euler="0 0 1.5707"
+                                  rgba="0.8 0 0 0.8"/>
+
+                            <!-- LINK 6 -->
+                            <body name="link6" pos="0 0 0.4331" quat="0.707107 0.707107 0 0">
+                                <inertial pos="0 0 0" mass="1" diaginertia="0.03 0.03 0.02"/>
+                                <joint name="j5" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"
+                                       damping="3" armature="0.02"/>
+                                <geom type="mesh" mesh="link6_mesh" pos="0 0 0"
+                                      euler="3.1415 0 1.5707" rgba="0 0.8 0 0.8"/>
+
+                                <!-- LINK 7 (end-effector) -->
+                                <body name="link7" pos="0 0.0558 0" quat="0.707107 -0.707107 0 0">
+                                    <inertial pos="0 0 0" mass="0.5" diaginertia="0.015 0.015 0.01"/>
+                                    <joint name="j6" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"
+                                           damping="3" armature="0.02"/>
+                                    <geom type="mesh" mesh="link7_mesh" pos="0 0 -0.01"
+                                          rgba="0 0 0.8 0.8"/>
+                                </body>
+
+                            </body>
+                        </body>
+                        
+                    </body>
+                </body>
             </body>
-          </body>
         </body>
-      </body>
-    </body>
-  </worldbody>
+    </worldbody>
 
-  <actuator>
-      <position joint="j1" kp="250" name="pos_j1"/>
-      <position joint="j2" kp="250" name="pos_j2"/>
-      <position joint="j3" kp="200" name="pos_j3"/>
-      <position joint="j4" kp="150" name="pos_j4"/>
-      <position joint="j5" kp="100" name="pos_j5"/>
-      <position joint="j6" kp="100" name="pos_j6"/>
-  </actuator>
+    <actuator>
+        <motor joint="j1" ctrlrange="-150 150"/>
+        <motor joint="j2" ctrlrange="-150 150"/>
+        <motor joint="j3" ctrlrange="-120 120"/>
+        <motor joint="j4" ctrlrange="-80 80"/>
+        <motor joint="j5" ctrlrange="-60 60"/>
+        <motor joint="j6" ctrlrange="-60 60"/>
+    </actuator>
+
 </mujoco>
