@@ -11,11 +11,11 @@ data = mujoco.MjData(model)
 with mujoco.viewer.launch_passive(model, data) as viewer:
     t = 0
     while viewer.is_running():
+        
         # simple joint oscillation
         data.qpos[0] = 1 * np.sin(5 * t)
         data.qpos[1] = 0.4 * np.sin(1.5 * t)
         data.qpos[2] = 0.3 * np.sin(1.2 * t)
-
         mujoco.mj_forward(model, data)
 
         viewer.sync()

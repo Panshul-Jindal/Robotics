@@ -17,7 +17,6 @@ def quintic_interpolation(t_coarse, q_coarse, t_fine):
         q_fine[mask] = a0 + a1*tau + a2*tau**2 + a3*tau**3 + a4*tau**4 + a5*tau**5
     return q_fine
 
-
 def lspb_interpolation(t_coarse, q_coarse, t_fine):
     q_fine = np.zeros(len(t_fine))
     for i in range(len(t_coarse) - 1):
@@ -62,7 +61,9 @@ def bangbang_interpolation(t_coarse, q_coarse, t_fine):
     return q_fine
 
 def interpolate_trajectory(q_coarse, t_coarse, t_fine, method="cubic"):
-    """Interpolate joint-space trajectory using various methods."""
+    
+    # Interpolate joint-space trajectory using various methods.
+    
     n_points, n_joints = q_coarse.shape
     n_fine = len(t_fine)
     q_fine = np.zeros((n_fine, n_joints))
