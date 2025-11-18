@@ -50,7 +50,7 @@ def main():
     output_dir.mkdir(exist_ok=True)
     
     # Configuration
-    path_types = ["linear", "arc", "circular", "parabolic", "rrt"]
+    path_types = ["linear", "arc", "parabolic", "rrt"]
     interp_types = ["cubic", "quintic", "lspb", "bangbang"]
     fps = 30
     headless = True  # Set to False to see the viewer window
@@ -94,7 +94,6 @@ def main():
         ("linear", "cubic"),
         ("linear", "lspb"),
         ("arc", "quintic"),
-        ("circular", "cubic"),
         ("parabolic", "bangbang"),
     ]
     

@@ -49,12 +49,12 @@ MESH_DIR = "puma560_description/meshes"
 BASE_ELEMENT = ['link1']
 
 # trajectory params
-cart_start = np.array([0.55, 0, 0.4])
-cart_end   = np.array([0, 0.55, 1])
+cart_start = np.array([0.3, -0.5, 0.2])
+cart_end   = np.array([0.4, -0.6, 1])
 path_type = args.path_type
 interp_type = args.interp_type
-coarse_points = 10         # number of IK solves along path (coarse)
-frames = 4000             # total frames to play out
+coarse_points = 15       # number of IK solves along path (coarse)
+frames = 6000             # total frames to play out
 dt = 0.001                # seconds per render step (sleep); adjust with viewer rate
 max_joint_vel = 1.5       # rad/s (per joint) — tune to reduce jerk
 use_pd_control = False    # if True we'll output desired qpos and you can adapt to your actuators
@@ -74,6 +74,9 @@ if args.output:
     video_filename = args.output
 else:
     video_filename = f"videos/trajectory_{path_type}_{interp_type}.mp4"
+
+# Ensure videos directory exists
+os.makedirs("videos", exist_ok=True)
 
 # Calculate skip rate to achieve desired video FPS
 sim_fps = 1.0 / dt
@@ -255,65 +258,54 @@ for j in range(n_active):
     q_coarse[:, j] = np.unwrap(q_coarse[:, j])
 
 
-def read_current_active_from_mujoco():
-    muj_names = [model.joint(i).name for i in range(model.nq)]
-    current = []
-    for name in active_names:
-        if name in muj_names:
-            idx = muj_names.index(name)
-            current.append(float(data.qpos[idx]))
-        else:
-            current.append(0.0)
-    return np.array(current, dtype=float)
+muj_names = [model.joint(i).name for i in range(model.njnt)]
+
 def active_to_full_qpos(active_q):
-    qpos = list(data.qpos.copy())
+    qpos = np.zeros(model.nq)
     for name, val in zip(active_names, active_q):
         if name in muj_names:
             idx = muj_names.index(name)
             qpos[idx] = float(val)
-    return np.array(qpos, dtype=float)
+    return qpos
 
-muj_names = [model.joint(i).name for i in range(model.njnt)]
 
-# --- Ensure simulation data reflects the measured starting configuration ---
-q_now = read_current_active_from_mujoco()
-# Write the measured starting pose into the mj model data so torso/world shows the correct start
-data.qpos[:] = active_to_full_qpos(q_now)
+# ========== SET INITIAL CONFIGURATION TO START POINT ==========
+print(f"\n{'='*60}")
+print(f"SETTING INITIAL CONFIGURATION")
+print(f"{'='*60}")
 
-# Compute difference to planned IK start
-planned_start = q_coarse[0].copy()
-start_diff_norm = np.linalg.norm(q_now - planned_start)
-print(f"Current active q (q_now): {q_now}")
-print(f"Planned start active q (q_coarse[0]): {planned_start}")
-print(f"Norm difference: {start_diff_norm:.6f} rad")
+# Calculate IK for the starting point
+print(f"Computing IK for start position: {cart_start}")
+q_start = ik_for_point(cart_start)
+print(f"Initial joint configuration: {q_start}")
 
-# If the current joint config differs from planned start, prepend q_now so the interpolator
-# creates a smooth transition from q_now -> planned_start -> rest_of_path.
-# This avoids sudden jumps and ensures robot actually goes to the designated start.
-if start_diff_norm > 1e-4:
-    print("Prepending current configuration to coarse waypoints to make move-to-start smooth.")
-    # Insert q_now as the first coarse waypoint
-    q_coarse = np.vstack([q_now[np.newaxis, :], q_coarse])
+# Set the robot to this configuration
+data.qpos[:] = active_to_full_qpos(q_start)
+mujoco.mj_forward(model, data)
 
-# Unwrap angles column-wise after possible insertion so interpolation chooses shortest paths
-print("Unwrapping joint angles...")
-for j in range(n_active):
-    q_coarse[:, j] = np.unwrap(q_coarse[:, j])
+# Verify the end-effector is at the start position
+ee_body_id = model.nbody - 1
+ee_pos_verify = data.xpos[ee_body_id].copy()
+ee_error = np.linalg.norm(ee_pos_verify - cart_start)
+print(f"End-effector position after setting: {ee_pos_verify}")
+print(f"Error from desired start: {ee_error:.6f} m")
 
-# Create time vectors consistent with number of coarse points
-n_coarse_after = q_coarse.shape[0]
-t_coarse = np.linspace(0.0, 1.0, n_coarse_after)
+if ee_error > 0.01:
+    print(f"⚠ Warning: Large positioning error ({ee_error:.4f} m)")
+else:
+    print(f"✓ Robot positioned at start point successfully")
+
+# Now the trajectory starts from this configuration (no need to prepend)
+# The first waypoint in q_coarse is already the start, so we use it as-is
+
+# Create time vectors
+n_coarse = q_coarse.shape[0]
+t_coarse = np.linspace(0.0, 1.0, n_coarse)
 t_fine = np.linspace(0.0, 1.0, frames)
 
-# Interpolate using your chosen method
-print(f"Interpolating trajectory to {frames} frames using {interp_type}...")
+# Interpolate using chosen method
+print(f"\nInterpolating trajectory to {frames} frames using {interp_type}...")
 q_fine = interpolate_trajectory(q_coarse, t_coarse, t_fine, method=interp_type)
-
-
-
-
-
-
 
 print(f"\n{'='*60}")
 print(f"EXECUTION PHASE")
@@ -337,11 +329,15 @@ if save_video:
         print("Video recording will be disabled")
         save_video = False
 
+# Reset robot to start configuration before execution
+data.qpos[:] = active_to_full_qpos(q_start)
+mujoco.mj_forward(model, data)
+
 # Choose viewer mode
 if args.no_display:
     # Headless mode - faster rendering
     print("Running in headless mode...")
-    prev_active = read_current_active_from_mujoco()
+    prev_active = q_start.copy()
     
     for frame_idx in range(frames):
         desired_active = q_fine[frame_idx]
@@ -374,12 +370,13 @@ if args.no_display:
             except Exception as e:
                 if frame_idx == 0:
                     print(f"Warning: Video capture failed: {e}")
+                    print(f"Error details: {str(e)}")
                     save_video = False
         
         prev_active = new_active.copy()
         
         if (frame_idx + 1) % 500 == 0:
-            print(f"  Progress: {100*(frame_idx+1)/frames:.1f}% ({frame_idx+1}/{frames} frames, {len(video_frames)} frames captured)")
+            print(f"  Progress: {100*(frame_idx+1)/frames:.1f}% ({frame_idx+1}/{frames} frames, {len(video_frames)} video frames captured)")
     
     if renderer is not None:
         renderer.close()
@@ -388,7 +385,7 @@ else:
     # Interactive mode with viewer
     print("Running with interactive viewer...")
     with mujoco.viewer.launch_passive(model, data) as viewer:
-        prev_active = read_current_active_from_mujoco()
+        prev_active = q_start.copy()
         
         for frame_idx in range(frames):
             desired_active = q_fine[frame_idx]
@@ -474,7 +471,7 @@ else:
             prev_active = new_active.copy()
             
             if (frame_idx + 1) % 100 == 0:
-                print(f"  Progress: {100*(frame_idx+1)/frames:.1f}% ({frame_idx+1}/{frames} frames)")
+                print(f"  Progress: {100*(frame_idx+1)/frames:.1f}% ({frame_idx+1}/{frames} frames, {len(video_frames)} video frames)")
     
     if save_video and renderer is not None:
         renderer.close()
@@ -486,26 +483,31 @@ if save_video and len(video_frames) > 0:
     print(f"{'='*60}")
     print(f"Writing {len(video_frames)} frames to {video_filename}...")
     try:
+        # Ensure frames directory exists
+        os.makedirs(os.path.dirname(video_filename), exist_ok=True)
+        
         # Convert to numpy array for mediapy
         video_array = np.array(video_frames, dtype=np.uint8)
+        print(f"Video array shape: {video_array.shape}")
+        print(f"Video array dtype: {video_array.dtype}")
+        
         media.write_video(video_filename, video_array, fps=video_fps)
         print(f"✓ Video saved successfully!")
-        file_size = os.path.getsize(video_filename) / (1024 * 1024)
-        print(f"  File size: {file_size:.2f} MB")
+        
+        if os.path.exists(video_filename):
+            file_size = os.path.getsize(video_filename) / (1024 * 1024)
+            print(f"  File size: {file_size:.2f} MB")
+            print(f"  Location: {os.path.abspath(video_filename)}")
+        else:
+            print(f"⚠ Warning: Video file not found after writing")
     except Exception as e:
         print(f"✗ Error saving video: {e}")
         print(f"  Frames captured: {len(video_frames)}")
         print(f"  Frame shape: {video_frames[0].shape if video_frames else 'N/A'}")
+        import traceback
+        traceback.print_exc()
 elif save_video:
     print(f"\n⚠ Warning: No video frames were captured")
+    print(f"  Check that renderer was initialized correctly")
 
-ee_path = np.array(list(ee_path_history))
-print(f"\n{'='*60}")
-print(f"TRAJECTORY STATISTICS")
-print(f"{'='*60}")
-print(f"Total path length: {np.sum(np.linalg.norm(np.diff(ee_path, axis=0), axis=1)):.4f} m")
-print(f"Start position: {ee_path[0]}")
-print(f"End position: {ee_path[-1]}")
-print(f"Error from target start: {np.linalg.norm(ee_path[0] - cart_start):.6f} m")
-print(f"Error from target end: {np.linalg.norm(ee_path[-1] - cart_end):.6f} m")
 print(f"\n✓ Trajectory playback finished!")
