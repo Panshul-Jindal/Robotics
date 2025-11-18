@@ -1,0 +1,481 @@
+\documentclass[11pt]{beamer}
+\usetheme{Madrid}
+\usefonttheme{serif}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{media9}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{navigation symbols}{}
+
+\title{PUMA 560 Manipulator Project}
+\subtitle{Inverse Kinematics}
+
+\author[AI4000 Robotics by Dr. R. Prasanth Kumar]{Saran Konala \quad Aryan Mehta \\  Pakki Sai Kaushik \quad Panshul Jindal}
+\institute[]{Indian Institute of Technology, Hyderabad}
+\date{November 14th, 2025}
+
+\bibliographystyle{apalike}
+
+\begin{document}
+
+%----------------------------------------------------------
+\begin{frame}
+\titlepage
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+%----------------------------------------------------------
+\section{Schematic and Coordinate Frames}
+
+\begin{frame}{Schematic and Coordinate Frames}
+Frames according to the \textbf{Denavit–Hartenberg} convention.
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.46\textwidth]{sv_with_Axis.png}
+    \caption{ Frames }
+\end{figure}
+\end{frame}
+
+\begin{frame}{Schematic (Wrist Section)}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{sv_with_axis_2.png}
+    \caption{ Frames }
+\end{figure}
+\end{frame}
+
+\begin{frame}{Schematic (Wrist Section)}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.7\textwidth]{better_view_of_wrist.png}
+    \caption{ Frames }
+\end{figure}
+\end{frame}
+
+
+%----------------------------------------------------------
+\section{Inverse Kinematics}
+
+\begin{frame}{Solution for $\theta_1$}
+\begin{block}{Target Position}
+\[
+P =
+\begin{bmatrix}
+p_x \\ p_y \\ p_z
+\end{bmatrix}
+\]
+\end{block}
+
+\begin{itemize}
+    \item Wrist center located at $p$ (spherical wrist assumption).
+    \item From geometric analysis, the joint angles $\theta_1$ to $\theta_6$ are derived.
+    \item $r =$  the total radial projection of the arm in the $x_1$-$y_1$ plane
+\end{itemize}
+
+\[
+r = \pm \sqrt{p_x^2 + p_y^2 - d_3^2}
+\]
+\[
+\boxed{
+\theta_1 = \text{atan2}(p_y, p_x) - \text{atan2}(d_3, r)
+}
+\]
+\begin{itemize}
+    \item Two possible values of $r \Rightarrow$ two possible $\theta_1$ values.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Solution for $\theta_2, \theta_3, \theta_4, \theta_5, \theta_6$}
+\[
+\boxed{
+\theta_2 = \text{atan2}(-p_z, r) \pm
+\cos^{-1}\!\left(
+\frac{r^2 + p_z^2 - a_3^2 - d_4^2}
+{2 a_2 \sqrt{r^2 + p_z^2}}
+\right)
+}
+\]
+\[
+\boxed{
+\theta_3 = \theta_{23} - \theta_2 
+} \quad \text{,where } \theta_{23} = \text{atan2}(s_{23}, c_{23})
+\]
+
+\[
+R_6^3 = (R_3^0)^{T} R =
+\begin{bmatrix}
+m_{ij}
+\end{bmatrix}_{3\times3}
+\]
+\[
+\boxed{
+\theta_5 = \cos^{-1}(m_{33}) =
+\text{atan2}(\pm\sqrt{1 - m_{33}^2}, m_{33})
+}
+\]
+\[
+\boxed{
+\theta_4 = \text{atan2}(m_{23}, m_{13}), \quad
+\theta_6 = \text{atan2}(m_{32}, -m_{31})
+}
+\]
+\begin{itemize}
+    \item 4 total solutions possible for $\theta_2$.
+    \item Each $\theta_2$ gives one $\theta_3$.
+    \item Two solutions for $\theta_5$. For each $\theta_5$,$(\theta_4, \theta_6)$ pair.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{(Optional) Geometry and Setup}
+\begin{itemize}
+    \item Wrist center: $P_c = P$.
+    \item Forward kinematics equations:
+\[
+\begin{aligned}
+p_x &= c_1(a_2 c_2 + a_3 c_{23} - d_4 s_{23}) - d_3 s_1,\\
+p_y &= s_1(a_2 c_2 + a_3 c_{23} - d_4 s_{23}) + d_3 c_1,\\
+p_z &= -a_2 s_2 - a_3 s_{23} - d_4 c_{23}.
+\end{aligned}
+\]
+    \item Constants: $a_2, a_3, d_3, d_4$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{(Optional) Derivation of $\theta_1, \theta_2$}
+From projection in $x$–$y$ plane:
+\[
+p_x = c_1 r - d_3 s_1,\quad
+p_y = s_1 r + d_3 c_1,
+\]
+\[
+p_z = -a_2 s_2 - a_3 s_{23} - d_4 c_{23}, \quad
+r = a_2 c_2 + a_3 c_{23} - d_4 s_{23}
+\]
+
+\[
+p_x^2 + p_y^2 = r^2 + d_3^2
+\Rightarrow
+r = \pm \sqrt{p_x^2 + p_y^2 - d_3^2}
+\]
+\[
+\boxed{
+\theta_1 = \text{atan2}(p_y, p_x) - \text{atan2}(d_3, r)
+}
+\]
+
+\[
+(r^2 + p_z^2 - d_4^2 - a_3^2) = (2r a_2)c_2 + (-2p_z a_2)s_2 
+\]
+Let:
+\[
+k_1 = 2r a_2, \quad k_2 = -2p_z a_2, \quad
+k_3 = r^2 + p_z^2 - d_4^2 - a_3^2
+\]
+\[
+\boxed{
+\theta_2 = \text{atan2}(k_2,k_1) \pm
+\cos^{-1}\!\left(\frac{k_3}{\sqrt{k_1^2 + k_2^2}}\right)
+}
+\]
+\end{frame}
+
+\begin{frame}{(Optional) Derivation of $\theta_3,\theta_4,\theta_5,\theta_6$}
+Let:
+\[
+r - a_2 c_2 = k_1, \quad p_z + a_2 s_2 = k_2
+\]
+\[ \Rightarrow
+c_{23} = \frac{a_3 k_1 - d_4 k_2}{a_3^2 + d_4^2}, \quad
+s_{23} = \frac{-d_4 k_1 - a_3 k_2}{a_3^2 + d_4^2}
+\]
+\[
+\boxed{
+\theta_{23} = \text{atan2}(s_{23}, c_{23}), \quad
+\theta_3 = \theta_{23} - \theta_2
+}
+\]
+
+\[
+R_6^3=R_4^3 R_5^4 R_6^5 =
+\begin{bmatrix}
+c_4 c_5 c_6 - s_4 s_6 & -c_4 c_6 s_5 - s_4 c_5 & c_4 s_5 \\
+s_4 c_5 c_6 + c_4 s_6 & -s_4 c_6 s_5 + c_4 c_6 & s_4 s_5 \\
+-s_5 c_6 & s_5 s_6 & c_5
+\end{bmatrix}
+\]
+\[
+m_{33} = c_5 \Rightarrow
+\boxed{\theta_5 = \cos^{-1}(m_{33})}
+\]
+\[
+\boxed{
+\theta_4 = \text{atan2}(m_{23}, m_{13}), \quad
+\theta_6 = \text{atan2}(m_{32}, -m_{31})
+}
+\]
+\end{frame}
+\section{Inverse Kinematics}
+
+\begin{frame}{Solution for $\theta_1$}
+\begin{block}{Target Pose and Wrist Center}
+Given Target Pose $T_{\text{target}}$ and End-Effector Position $p$:
+\[
+T_{\text{target}} =
+\begin{bmatrix}
+R & p \\ 0 & 1
+\end{bmatrix}
+=
+\begin{bmatrix}
+\vec{n} & \vec{s} & \vec{a} & p \\ 0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+\end{block}
+
+\begin{itemize}
+    \item Wrist center $P_c = [x_c, y_c, z_c]^T$ is found by $P_c = p - d_6 \vec{a}$.
+    \item $x_c = p_x - d_6 a_x, \quad y_c = p_y - d_6 a_y, \quad z_c = p_z - d_6 a_z$
+    \item $r =$ intermediate radial projection in the $x_1$-$y_1$ plane
+\end{itemize}
+
+\[
+r = \pm \sqrt{x_c^2 + y_c^2 - d_2^2} \quad
+% \]
+% \[
+s_1 = \frac{d_2 x_c + r y_c}{x_c^2 + y_c^2}, \quad c_1 = \frac{r x_c - d_2 y_c}{x_c^2 + y_c^2}
+\]
+\[
+\boxed{
+\theta_1 = \text{atan2}(s_1, c_1)
+}
+\]
+\begin{itemize}
+    \item Two possible values of $r \Rightarrow$ two possible $\theta_1$ values.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Solution for $\theta_2, \theta_3, \theta_4, \theta_5, \theta_6$}
+Let $k_1, k_2, k_3$ be constants defined from $\theta_1$:
+\[
+\boxed{
+\theta_2 = \text{atan2}(k_2, k_1) \pm
+\cos^{-1}\!\left(
+\frac{k_3}{\sqrt{k_1^2 + k_2^2}}
+\right)
+}
+\]
+\[
+\boxed{
+\theta_3 = \theta_{23} - \theta_2 
+} \quad \text{,where } \theta_{23} = \text{atan2}(-K_x, K_y)
+\]
+
+\[
+R_6^3 = (R_3^0)^{T} R =
+\begin{bmatrix}
+m_{ij}
+\end{bmatrix}_{3\times3}
+\]
+\[
+\boxed{
+\theta_5 = \cos^{-1}(m_{33}) =
+\text{atan2}(\pm\sqrt{1 - m_{33}^2}, m_{33})
+}
+\]
+\[
+\boxed{
+\theta_4 = \text{atan2}(m_{23}, m_{13}), \quad
+\theta_6 = \text{atan2}(m_{32}, -m_{31})
+}
+\]
+\begin{itemize}
+    \item Two solutions for $\theta_2$ for each $\theta_1$ (4 total arm solutions).
+    \item Each $\theta_2$ gives one $\theta_3$.
+    \item Two solutions for $\theta_5$. For each $\theta_5$, one $(\theta_4, \theta_6)$ pair.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{(Optional) Geometry and Setup}
+\begin{itemize}
+    \item Wrist center: $P_c = p - d_6 \vec{a} = [x_c, y_c, z_c]^T$.
+    \item Forward kinematics equations (for Wrist Center):
+\[
+\begin{aligned}
+x_c &= c_1(a_1 + a_2c_2 - d_4s_{23}) + s_1(d_2),\\
+y_c &= s_1(a_1 + a_2c_2 - d_4s_{23}) - c_1(d_2),\\
+z_c &= d_1 + a_2s_2 + d_4c_{23}.
+\end{aligned}
+\]
+    \item Constants: $a_1, a_2, d_1, d_2, d_4, d_6$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{(Optional) Derivation of $\theta_1, \theta_2$}
+From projection in $x$–$y$ plane:
+\[
+x_c = c_1 r + d_2 s_1,\quad
+y_c = s_1 r - d_2 c_1,
+\]
+\[
+z_c = d_1 + a_2s_2 + d_4c_{23}, \quad
+r = a_1 + a_2c_2 - d_4s_{23}
+\]
+
+\[
+x_c^2 + y_c^2 = r^2 + d_2^2
+\Rightarrow
+r = \pm \sqrt{x_c^2 + y_c^2 - d_2^2}
+\]
+\[
+s_1 = \frac{d_2 x_c + r y_c}{x_c^2 + y_c^2}, \quad c_1 = \frac{r x_c - d_2 y_c}{x_c^2 + y_c^2} \quad
+\boxed{
+\theta_1 = \text{atan2}(s_1, c_1)
+}
+\]
+
+\[
+(r-a_1)^2 + (z_c-d_1)^2 + a_2^2 - d_4^2 = 2a_2(r-a_1)c_2 + 2a_2(z_c-d_1)s_2
+\]
+Let:
+\[
+k_1 = 2a_2(r-a_1), \quad k_2 = 2a_2(z_c-d_1), \quad
+% \]
+% \[
+k_3 = (r-a_1)^2 + (z_c-d_1)^2 + a_2^2 - d_4^2
+\]
+\[
+\boxed{
+\theta_2 = \text{atan2}(k_2,k_1) \pm
+\cos^{-1}\!\left(\frac{k_3}{\sqrt{k_1^2 + k_2^2}}\right)
+}
+\]
+\end{frame}
+
+\begin{frame}{(Optional) Derivation of $\theta_3,\theta_4,\theta_5,\theta_6$}
+Let:
+\[
+K_x = r - a_1 - a_2 c_2, \quad K_y = z_c - d_1 - a_2 s_2
+\]
+\[ \Rightarrow
+s_{23} = -K_x / d_4, \quad
+c_{23} = K_y / d_4
+\]
+\[
+\boxed{
+\theta_{23} = \text{atan2}(-K_x, K_y), \quad
+\theta_3 = \theta_{23} - \theta_2
+}
+\]
+
+\[
+R_6^3=R_4^3 R_5^4 R_6^5 =
+\begin{bmatrix}
+c_4 c_5 c_6 - s_4 s_6 & -c_4 c_6 s_5 - s_4 c_5 & c_4 s_5 \\
+s_4 c_5 c_6 + c_4 s_6 & -s_4 c_6 s_5 + c_4 c_6 & s_4 s_5 \\
+-s_5 c_6 & s_5 s_6 & c_5
+\end{bmatrix}
+\]
+\[
+m_{33} = c_5 \Rightarrow
+\boxed{\theta_5 = \cos^{-1}(m_{33})}
+\]
+\[
+\boxed{
+\theta_4 = \text{atan2}(m_{23}, m_{13}), \quad
+\theta_6 = \text{atan2}(m_{32}, -m_{31})
+}
+\]
+\end{frame}
+
+\begin{frame}{Final Inverse Kinematics Solution (PUMA 560)}
+
+\[
+\boxed{
+\theta_1 = \operatorname{atan2}(p_y,\, p_x)
+}
+\]
+
+\[
+\boxed{
+\theta_3 =
+\operatorname{atan2}\!\left(
+\sqrt{(p_x^2+p_y^2+d_3^2 - a_2^2 - a_3^2)^2 - (2a_2a_3)^2},
+\; 2a_2a_3
+\right)
+}
+\]
+
+\[
+\boxed{
+\theta_2
+=
+\operatorname{atan2}\!\left(p_z,\; \sqrt{p_x^2 + p_y^2 - d_3^2}\right)
+-
+\operatorname{atan2}\!\left(
+a_3\sin\theta_3 - d_4\cos\theta_3,\;\;
+a_2 + a_3\cos\theta_3 + d_4\sin\theta_3
+\right)
+}
+\]
+
+\[
+R_6^3 = (R_0^3)^T R_0^6 =
+\begin{bmatrix}
+m_{ij}
+\end{bmatrix}
+\]
+
+\[
+\boxed{
+\theta_5 = \operatorname{atan2}\!\left( \sqrt{1-m_{33}^2},\; m_{33} \right)
+}
+\]
+
+\[
+\boxed{
+\theta_4 = \operatorname{atan2}(m_{23},\, m_{13}),
+\qquad
+\theta_6 = \operatorname{atan2}(m_{32},\, -m_{31})
+}
+\]
+
+\begin{itemize}
+    \item 8 possible solutions (elbow up/down + wrist flip).
+\end{itemize}
+
+\end{frame}
+
+
+
+
+
+%----------------------------------------------------------
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+Future work:
+    \begin{itemize}
+        \item Dynamics modeling
+        \item Trajectory and path planning in simulation
+    \end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}
+\centering
+\Huge Thank You!\\[1em]
+\end{frame}
+
+\end{document}

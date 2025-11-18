@@ -1,0 +1,417 @@
+\documentclass[11pt]{beamer}
+\usetheme{Madrid}
+\usefonttheme{serif}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{media9}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{navigation symbols}{}
+
+\title{PUMA 560 Manipulator Project}
+\subtitle{Velocity Kinematics}
+
+\author[AI4000 Robotics by Dr. R. Prasanth Kumar]{Saran Konala \quad Aryan Mehta \\  Pakki Sai Kaushik \quad Panshul Jindal}
+\institute[]{Indian Institute of Technology, Hyderabad}
+\date{November 11th, 2025}
+
+\bibliographystyle{apalike}
+
+\begin{document}
+
+%----------------------------------------------------------
+\begin{frame}
+\titlepage
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+%----------------------------------------------------------
+\section{Schematic and Coordinate Frames}
+
+\begin{frame}{Schematic and Coordinate Frames}
+Coordinate frames are assigned according to the \textbf{Denavit–Hartenberg} convention.
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.46\textwidth]{sv_with_Axis.png}
+    \caption{Assigned frames for the PUMA 560 arm}
+\end{figure}
+\end{frame}
+
+
+%----------------------------------------------------------
+\section{Denavit-Hartenberg Parameters}
+
+\begin{frame}{Denavit-Hartenberg Parameters}
+\begin{itemize}
+    \item The DH convention defines each link using:
+    \[
+    (a_i, \alpha_i, d_i, \theta_i)
+    \]
+    \item The following table shows the DH parameters for the PUMA 560 manipulator.
+\end{itemize}
+
+\begin{table}[htb]
+\centering
+\caption{Denavit–Hartenberg parameters of PUMA 560}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+Link $i$ & $\alpha_{i}$ (deg) & $a_{i}$ (m) & $d_i$ (m) & $\theta_i$ (rad) \\ \midrule
+1 & $90$     & $a_1$   & $d_1$      & $\theta_1$ \\
+2 & $0$   & $a_2$   & $d_2$      & $\theta_2$ \\
+3 & $-90$     & $0$ & $0$    & $\theta_3$ \\
+4 & $90$   & $0$ & $d_4$    & $\theta_4$ \\
+5 & $-90$    & $0$   & $0$      & $\theta_5$ \\
+6 & $0$   & $0$   & $d_6$      & $\theta_6$ \\ 
+\bottomrule
+\end{tabular}
+\end{table}
+\end{frame}
+
+%----------------------------------------------------------
+\section{Homogeneous Transformation Matrices}
+
+\begin{frame}{Transformation Matrices (1-3)}
+
+The homogeneous transformation matrices are derived from the DH parameters.
+
+\[
+A_1 =
+\begin{bmatrix}
+\cos\theta_1 & 0 & \sin\theta_1 & 0 \\
+\sin\theta_1 & 0 & -\cos\theta_1 & 0 \\
+0 & 1 & 0 & d_1 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\quad
+A_2 =
+\begin{bmatrix}
+\cos\theta_2 & -\sin\theta_2 & 0 & a_2\cos\theta_2 \\
+\sin\theta_2 & \cos\theta_2 & 0 & a_2\sin\theta_2 \\
+0 & 0 & 1 & d_2 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\[
+A_3 =
+\begin{bmatrix}
+\cos\theta_3 & 0 & -\sin\theta_3 & a_3\cos\theta_3 \\
+\sin\theta_3 & 0 & \cos\theta_3  & a_3\sin\theta_3 \\
+0 & -1 & 0 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\end{frame}
+
+\begin{frame}{Transformation Matrices (4-6)}
+
+\[
+A_4 =
+\begin{bmatrix}
+\cos\theta_4 & 0 & \sin\theta_4 & 0 \\
+\sin\theta_4 & 0 & -\cos\theta_4 & 0 \\
+0 & 1 & 0 & d_4 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\[
+A_5 =
+\begin{bmatrix}
+\cos\theta_5 & 0 & -\sin\theta_5 & 0 \\
+\sin\theta_5 & 0 & \cos\theta_5 & 0 \\
+0 & -1 & 0 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\[
+A_6 =
+\begin{bmatrix}
+\cos\theta_6 & -\sin\theta_6 & 0 & 0 \\
+\sin\theta_6 & \cos\theta_6  & 0 & 0 \\
+0 & 0 & 1 & d_6 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\end{frame}
+
+
+%----------------------------------------------------------
+\section{Forward Kinematics Result}
+
+\begin{frame}{Resulting Forward Kinematics}
+\[
+{}^{0}\!T_6 = T_1 \, T_2 \, T_3 \, T_4 \, T_5 \, T_6
+\]
+\begin{block}{Final Transformation}
+\[
+{}^{0}\!T_6 =
+\begin{bmatrix}
+R_{0}^{6} & p_{0}^{6} \\
+0 & 1
+\end{bmatrix}
+\]
+where $R_{0}^{6}$ is the rotation matrix (orientation) and $p_{0}^{6}$ is the position vector.
+\end{block}
+\end{frame}
+
+\begin{frame}{Workspace of PUMA 560}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.45\textwidth]{Workspace-of-the-wrist-point-of-the-PUMA-560.png}
+    \caption{Workspace of the wrist point of the PUMA 560}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Animated Workspace of wrist point}
+\begin{itemize}
+    \item Use \textbf{Okular in Linux} or \textbf{Adobe Acrobat in Windows} to view
+\end{itemize}
+    \centering
+    \includemedia[
+        width=0.8\linewidth,
+        height=0.6\linewidth,
+        activate=pageopen,
+        addresource=puma560_workspace-3d.mp4,
+        flashvars={
+            source=puma560_workspace-3d.mp4
+            &autoPlay=true
+            &loop=true
+        }
+        ]{}{VPlayer.swf}
+\end{frame}
+%----------------------------------------------------------
+\section{Velocity Kinematics}
+\begin{frame}{Kinematics: Joint Axes (${}^{0}\mathbf{z}_i$)}
+\begin{block}{Axes in Base Frame}
+\tiny
+\[
+\begin{aligned}
+{}^{0}\mathbf{z}_0 &= 
+\begin{bmatrix}0\\0\\1\end{bmatrix},
+\qquad
+{}^{0}\mathbf{z}_1 = 
+\begin{bmatrix}s_1\\-c_1\\0\end{bmatrix},
+\qquad
+{}^{0}\mathbf{z}_2 = 
+\begin{bmatrix}s_1\\-c_1\\0\end{bmatrix},
+\\[1.0em]
+{}^{0}\mathbf{z}_3 &= 
+\begin{bmatrix}
+-\,c_1\,s_{23} \\[3pt]
+-\,s_1\,s_{23} \\[3pt]
+\phantom{-}\,c_{23}
+\end{bmatrix},
+\\[1.0em]
+{}^{0}\mathbf{z}_4 &= 
+\begin{bmatrix}
+-\,s_1 c_4 + c_1 c_{23} s_4 \\[4pt]
+\phantom{-}\,s_1 c_{23} s_4 + c_1 c_4 \\[4pt]
+-\,s_{23} s_4
+\end{bmatrix},
+\\[1.0em]
+{}^{0}\mathbf{z}_5 &= 
+\begin{bmatrix}
+- (s_1 s_4 + c_1 c_4 c_{23}) s_5 - c_1 s_{23} c_5 \\[4pt]
+- (c_1 s_4 - s_1 c_4 c_{23}) s_5 - s_1 s_{23} c_5 \\[4pt]
+\phantom{-}\,s_{23} s_5 c_4 - c_{23} c_5
+\end{bmatrix},
+\\[1.0em]
+{}^{0}\mathbf{z}_6 &= {}^{0}\mathbf{z}_5.
+\end{aligned}
+\]
+\end{block}
+\end{frame}
+
+
+\begin{frame}{Kinematics: Frame Origins (${}^{0}\mathbf{o}_i$)}
+\begin{block}{Origins in Base Frame}
+\tiny
+\[
+\begin{aligned}
+{}^{0}\mathbf{o}_0 &= 
+\begin{bmatrix}0\\0\\0\end{bmatrix},
+\qquad
+{}^{0}\mathbf{o}_1 = 
+\begin{bmatrix}0\\0\\d_1\end{bmatrix},
+\\[1.0em]
+{}^{0}\mathbf{o}_2 &= 
+\begin{bmatrix}
+a_2 c_1 c_2 + d_2 s_1 \\[3pt]
+a_2 s_1 c_2 - d_2 c_1 \\[3pt]
+a_2 s_2 + d_1
+\end{bmatrix},
+\\[1.0em]
+{}^{0}\mathbf{o}_3 &= 
+\begin{bmatrix}
+c_1(a_2 c_2 + a_3 c_{23}) + d_2 s_1 \\[4pt]
+s_1(a_2 c_2 + a_3 c_{23}) - d_2 c_1 \\[4pt]
+d_1 + a_2 s_2 + a_3 s_{23}
+\end{bmatrix},
+\\[1.0em]
+{}^{0}\mathbf{o}_4 &= 
+\begin{bmatrix}
+c_1(a_2 c_2 + a_3 c_{23}) + d_2 s_1 - d_4 c_1 s_{23} \\[4pt]
+s_1(a_2 c_2 + a_3 c_{23}) - d_2 c_1 - d_4 s_1 s_{23} \\[4pt]
+d_1 + a_2 s_2 + a_3 s_{23} + d_4 c_{23}
+\end{bmatrix},
+\\[1.0em]
+{}^{0}\mathbf{o}_5 &= {}^{0}\mathbf{o}_4,
+\\[1.0em]
+{}^{0}\mathbf{o}_6 &= 
+{}^{0}\mathbf{o}_5 + d_6\,{}^{0}\mathbf{z}_5.
+\end{aligned}
+\]
+\end{block}
+\end{frame}
+
+
+\begin{frame}{Spatial Manipulator Jacobian}
+\vspace{-0.2cm}
+\begin{block}{Jacobian Structure}
+The spatial velocity Jacobian $\mathbf{J}$ is a $6 \times 6$ matrix composed of:
+\begin{itemize}
+    \item \textbf{Linear Velocity $\mathbf{J}_v$}: Contribution of joint $i$ to end-effector's linear velocity
+    \item \textbf{Angular Velocity $\mathbf{J}_\omega$}: Contribution of joint $i$ to end-effector's angular velocity
+\end{itemize}
+\end{block}
+
+\begin{block}{Column Formulas for Revolute Joint $i$}
+\begin{align*}
+\mathbf{J}_{v_i} &= {}^{0}\mathbf{z}_{i-1}\times\!\left({}^{0}\mathbf{o}_6-{}^{0}\mathbf{o}_{i-1}\right) \\
+\mathbf{J}_{\omega_i} &= {}^{0}\mathbf{z}_{i-1}
+\end{align*}
+\end{block}
+\end{frame}
+
+\begin{frame}
+\frametitle{Full $6 \times 6$ Spatial Jacobian $\mathbf{J}$}
+
+% Tighter spacing
+\setlength{\arraycolsep}{3pt}
+\renewcommand{\arraystretch}{1.1}
+\footnotesize
+
+\begin{block}{Structure}
+\[
+\mathbf{J} = 
+\begin{bmatrix}
+\mathbf{J}_v \\[4pt]
+\mathbf{J}_\omega
+\end{bmatrix}
+\]
+\end{block}
+
+\begin{block}{Linear Velocity Component $\mathbf{J}_v$}
+\centering
+\resizebox{\linewidth}{!}{$
+\mathbf{J}_v =
+\begin{bmatrix}
+\;d_2 c_1 + d_4 s_1 s_{23}
+ - (a_2 c_2 + a_3 c_{23}) s_1
+ + d_6\!\left[(s_1 c_4 c_{23} - s_4 c_1)s_5 + s_1 s_{23} c_5\right]
+&
+c_1\!\left[-a_2 s_2 - a_3 s_{23} - d_4 c_{23}
+            + d_6(s_5 s_{23} c_4 - c_5 c_{23})\right]
+&
+c_1\!\left[-a_3 s_{23} - d_4 c_{23}
+            + d_6(s_5 s_{23} c_4 - c_5 c_{23})\right]
+&
+d_6(-s_1 c_4 + s_4 c_1 c_{23}) s_5
+&
+- d_6\!\left[(s_1 s_4 + c_1 c_4 c_{23}) c_5 - s_5 s_{23} c_1\right]
+&
+0
+\\[10pt]
+%
+d_2 s_1 - d_4 s_{23} c_1
+ + (a_2 c_2 + a_3 c_{23}) c_1
+ + d_6\!\left[(s_1 s_4 + c_1 c_4 c_{23}) s_5 - s_{23} c_1 c_5\right]
+&
+- s_1\!\left[a_2 s_2 + a_3 s_{23} + d_4 c_{23}
+           + d_6(s_5 s_{23} c_4 + c_5 c_{23})\right]
+&
+- s_1\!\left[a_3 s_{23} + d_4 c_{23}
+           + d_6(s_5 s_{23} c_4 + c_5 c_{23})\right]
+&
+- d_6(s_1 s_4 c_{23} + c_1 c_4) s_5
+&
+d_6\!\left[(s_1 c_4 c_{23} - s_4 c_1) c_5 + s_1 s_5 s_{23}\right]
+&
+0
+\\[10pt]
+%
+0
+&
+a_2 c_2 + a_3 c_{23} - d_4 s_{23}
+ + d_6(s_5 c_4 c_{23} + s_{23} c_5)
+&
+a_3 c_{23} - d_4 s_{23}
+ + d_6(s_5 c_4 c_{23} + s_{23} c_5)
+&
+- d_6 s_4 s_5 s_{23}
+&
+d_6(s_5 c_{23} + s_{23} c_4 c_5)
+&
+0
+\end{bmatrix}
+$}
+\end{block}
+
+
+\begin{block}{Angular Velocity Component $\mathbf{J}_\omega$}
+\centering
+\resizebox{\linewidth}{!}{$
+\mathbf{J}_\omega =
+\begin{bmatrix}
+0 & s_1 & s_1 & - c_1 s_{23} & - s_1 c_4 + s_4 c_1 c_{23} & - (s_1 s_4 + c_1 c_4 c_{23}) s_5 - c_1 s_{23} c_5
+\\[6pt]
+0 & -c_1 & -c_1 & - s_1 s_{23} & s_1 s_4 c_{23} + c_1 c_4 & (s_1 c_4 c_{23} - s_4 c_1) s_5 - s_1 s_{23} c_5
+\\[6pt]
+1 & 0 & 0 & c_{23} & - s_4 s_{23} & s_5 s_{23} c_4 - c_5 c_{23}
+\end{bmatrix}
+$}
+\end{block}
+
+% \end{frame}
+
+
+\medskip
+\scriptsize
+\textbf{Notation: } $s_i=\sin\theta_i,\; c_i=\cos\theta_i,\; s_{23}=\sin(\theta_2+\theta_3),\; c_{23}=\cos(\theta_2+\theta_3)$
+\end{frame}
+
+
+%----------------------------------------------------------
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+Future work:
+    \begin{itemize}
+        \item Inverse kinematics
+        \item Dynamics modeling
+        \item Trajectory and path planning in simulation
+    \end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}
+\centering
+\Huge Thank You!\\[1em]
+\end{frame}
+
+\end{document}

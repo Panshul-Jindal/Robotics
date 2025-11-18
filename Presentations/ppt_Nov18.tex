@@ -1,0 +1,448 @@
+\documentclass[12pt]{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{multimedia}
+\usepackage{hyperref}
+\usepackage{booktabs} % For more professional-looking tables
+\usepackage{xcolor} % For coloring
+
+% comparison table
+\usepackage{colortbl}
+\title{PUMA 560 Manipulator Project}
+\subtitle{Path Planning and Trajectory Planning , algorithm Comparison and Analysis}
+
+\author[AI4000 Robotics by Dr. R. Prasanth Kumar]{Saran Konala \quad Aryan Mehta \\  Pakki Sai Kaushik \quad Panshul Jindal}
+\institute[]{Indian Institute of Technology, Hyderabad}
+\date{November 18th, 2025}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}{Project Overview}
+\begin{itemize}
+    \item \textbf{Objective:} Compare path planning and trajectory planning algorithms for PUMA 560 manipulator
+    \item \textbf{Path Planning:} Determines waypoints in Cartesian space (where to go)
+    \item \textbf{Trajectory Planning:} Generates smooth joint-space motion (how to get there)
+    \item \textbf{Approach:} 
+    \begin{itemize}
+        \item Fix one algorithm type, vary the other
+        \item Analyze performance differences
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\section{Path Planning Comparison}
+
+\begin{frame}{Path Planning Comparison Setup}
+\begin{block}{Fixed Component}
+\textbf{Trajectory Planning:} Bang-Bang Acceleration Control
+\end{block}
+
+\begin{block}{Variable Component}
+\textbf{Path Planning Algorithms:}
+\begin{enumerate}
+    \item Linear Path
+    \item Arc Path
+    \item Parabolic Path
+    \item RRT (Rapidly-Exploring Random Tree)
+\end{enumerate}
+\end{block}
+\end{frame}
+
+\subsection{Linear Path + Bang-Bang}
+
+\begin{frame}[fragile]{Linear Path + Bang-Bang Trajectory}
+\begin{columns}
+\column{0.5\textwidth}
+\underline{\textbf{Path Planning: Linear}}
+\begin{algorithmic}[1]
+\scriptsize
+\Require Start $S$, End $E$, Points $N$
+\For{$i = 0$ to $N-1$}
+    \State $t \gets \frac{i}{N-1}$
+    \State $P[i] \gets (1-t)S + tE$
+\EndFor
+\State \Return $P$
+\end{algorithmic}
+
+\vspace{0.3cm}
+\underline{\textbf{Trajectory: Bang-Bang}}
+\begin{algorithmic}[1]
+\scriptsize
+\Require $q_0, q_1, T$
+\If{$\tau < 0.5$}
+    \State $q = q_0 + 2(q_1-q_0)\tau^2$
+\Else
+    \State $q = q_1 - 2(q_1-q_0)(1-\tau)^2$
+\EndIf
+\end{algorithmic}
+
+\column{0.5\textwidth}
+\centering
+\movie[width=\textwidth,height=0.6\textheight,poster,showcontrols]{}{traj_linear_bangbang.mp4}
+
+\end{columns}
+\end{frame}
+
+\subsection{Arc Path + Bang-Bang}
+
+\begin{frame}[fragile]{Arc Path + Bang-Bang Trajectory}
+\begin{columns}
+\column{0.5\textwidth}
+\underline{\textbf{Path Planning: Arc}}
+\begin{algorithmic}[1]
+\scriptsize
+\Require Start $S$, End $E$, Points $N$
+\State $h \gets 0.2$ \Comment{Height}
+\For{$i = 0$ to $N-1$}
+    \State $t \gets \frac{i}{N-1}$
+    \State $P[i] \gets (1-t)S + tE$
+    \State $P[i]_z \gets P[i]_z + 4ht(1-t)$
+\EndFor
+\State \Return $P$
+\end{algorithmic}
+
+\vspace{0.3cm}
+\underline{\textbf{Trajectory: Bang-Bang}}
+\begin{algorithmic}[1]
+\scriptsize
+\Require $q_0, q_1, T$
+\If{$\tau < 0.5$}
+    \State $q = q_0 + 2(q_1-q_0)\tau^2$
+\Else
+    \State $q = q_1 - 2(q_1-q_0)(1-\tau)^2$
+\EndIf
+\end{algorithmic}
+
+\column{0.5\textwidth}
+\centering
+\movie[width=\textwidth,height=0.6\textheight,poster,showcontrols]{}{traj_arc_bangbang.mp4}
+\end{columns}
+\end{frame}
+
+\subsection{Parabolic Path + Bang-Bang}
+
+\begin{frame}[fragile]{Parabolic Path + Bang-Bang Trajectory}
+\begin{columns}
+\column{0.5\textwidth}
+\underline{\textbf{Path Planning: Parabolic}}
+\begin{algorithmic}[1]
+\scriptsize
+\Require Start $S$, End $E$, Points $N$
+\For{$i = 0$ to $N-1$}
+    \State $t \gets \frac{i}{N-1}$
+    \State $P[i] \gets (1-t)S + tE$
+    \State $P[i]_y \gets P[i]_y + 0.2\sin(\pi t)$
+    \State $P[i]_z \gets P[i]_z + 0.2 \cdot 4t(1-t)$
+\EndFor
+\State \Return $P$
+\end{algorithmic}
+
+\vspace{0.3cm}
+\underline{\textbf{Trajectory: Bang-Bang}}
+\begin{algorithmic}[1]
+\scriptsize
+\Require $q_0, q_1, T$
+\If{$\tau < 0.5$}
+    \State $q = q_0 + 2(q_1-q_0)\tau^2$
+\Else
+    \State $q = q_1 - 2(q_1-q_0)(1-\tau)^2$
+\EndIf
+\end{algorithmic}
+
+\column{0.5\textwidth}
+\centering
+\movie[width=\textwidth,height=0.6\textheight,poster,showcontrols]{}{traj_parabolic_bangbang.mp4}
+\end{columns}
+\end{frame}
+
+\subsection{RRT Path + Bang-Bang}
+
+\begin{frame}[fragile]{RRT Path + Bang-Bang Trajectory}
+\begin{columns}
+\column{0.5\textwidth}
+\underline{\textbf{Path Planning: RRT}}
+\begin{algorithmic}[1]
+\scriptsize
+\Require Start $S$, Goal $G$, Max iter $M$
+\State $T \gets [S]$
+\For{$k = 1$ to $M$}
+    \State Sample $X_{rand}$
+    \State Find nearest $X_{near}$ in $T$
+    \State $X_{new} \gets X_{near} + \epsilon \cdot \frac{d}{\|d\|}$
+    \If{collision-free}
+        \State Add $X_{new}$ to $T$
+        \If{$\|X_{new} - G\| < \epsilon$}
+            \State \Return path
+        \EndIf
+    \EndIf
+\EndFor
+\end{algorithmic}
+
+\underline{\textbf{Trajectory: Bang-Bang}}
+\begin{algorithmic}[1]
+\scriptsize
+\If{$\tau < 0.5$}
+    \State $q = q_0 + 2(q_1-q_0)\tau^2$
+\Else
+    \State $q = q_1 - 2(q_1-q_0)(1-\tau)^2$
+\EndIf
+\end{algorithmic}
+
+\column{0.5\textwidth}
+\centering
+\movie[width=\textwidth,height=0.6\textheight,poster,showcontrols]{}{traj_rrt_bangbang.mp4}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Path Planning Comparison Summary}
+\begin{table}
+\centering
+\small
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Algorithm} & \textbf{Smoothness} & \textbf{Obstacle Avoidance} & \textbf{Computation} \\ \hline
+Linear & Low & No & Very Fast \\ \hline
+Arc & Medium & Partial & Fast \\ \hline
+Parabolic & High & Good & Fast \\ \hline
+RRT & Variable & Excellent & Slow \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Linear:} Simplest, fastest, but no obstacle avoidance
+    \item \textbf{Arc/Parabolic:} Good balance of smoothness and efficiency
+    \item \textbf{RRT:} Best for complex environments with obstacles
+\end{itemize}
+\end{frame}
+
+\section{Trajectory Planning Comparison}
+
+\begin{frame}{Trajectory Planning Comparison Setup}
+\begin{block}{Fixed Component}
+\textbf{Path Planning:} Arc Path
+\end{block}
+
+\begin{block}{Variable Component}
+\textbf{Trajectory Planning Algorithms:}
+\begin{enumerate}
+    \item Cubic Spline Interpolation
+    \item Quintic Polynomial
+    \item LSPB (Linear Segment with Parabolic Blends)
+    \item Bang-Bang Acceleration Control
+\end{enumerate}
+\end{block}
+\end{frame}
+
+\subsection{Arc + Cubic Spline}
+
+\begin{frame}[fragile]{Arc Path + Cubic Spline Trajectory}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Path Planning: Arc (Fixed)}
+\begin{algorithmic}[1]
+\scriptsize
+\For{$i = 0$ to $N-1$}
+    \State $t \gets \frac{i}{N-1}$
+    \State $P[i] \gets (1-t)S + tE$
+    \State $P[i]_z \gets P[i]_z + 4ht(1-t)$
+\EndFor
+\end{algorithmic}
+
+\vspace{0.3cm}
+\textbf{Trajectory: Cubic Spline}
+\begin{algorithmic}[1]
+\scriptsize
+\Require Times $t_{coarse}$, positions $q_{coarse}$
+\For{each joint $j$}
+    \State Create CubicSpline with clamped BC
+    \State $q_{fine}[:, j] \gets \text{Spline}(t_{fine})$
+\EndFor
+\State Apply phase unwrapping
+\State \Return $q_{fine}$
+\end{algorithmic}
+
+\textbf{Properties:} $C^2$ continuous, smooth
+
+\column{0.5\textwidth}
+\centering
+\movie[width=\textwidth,height=0.6\textheight,poster,showcontrols]{}{traj_arc_cubic.mp4}
+\end{columns}
+\end{frame}
+
+\subsection{Arc + Quintic Polynomial}
+
+\begin{frame}[fragile]{Arc Path + Quintic Polynomial Trajectory}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Path Planning: Arc (Fixed)}
+\begin{algorithmic}[1]
+\scriptsize
+\For{$i = 0$ to $N-1$}
+    \State $t \gets \frac{i}{N-1}$
+    \State $P[i] \gets (1-t)S + tE$
+    \State $P[i]_z \gets P[i]_z + 4ht(1-t)$
+\EndFor
+\end{algorithmic}
+
+\vspace{0.3cm}
+\textbf{Trajectory: Quintic Polynomial}
+\begin{algorithmic}[1]
+\scriptsize
+\Require $q_0, q_1, T$
+\State $\tau \gets \frac{t}{T}$
+\State $q(\tau) = a_0 + a_1\tau + ... + a_5\tau^5$
+\State $a_0 = q_0$, $a_1=a_2=0$
+\State $a_3=10(q_1-q_0)$
+\State $a_4=-15(q_1-q_0)$
+\State $a_5=6(q_1-q_0)$
+\end{algorithmic}
+
+\textbf{Properties:} $C^3$ continuous, very smooth
+
+\column{0.5\textwidth}
+\centering
+\movie[width=\textwidth,height=0.6\textheight,poster,showcontrols]{}{traj_arc_quintic.mp4}
+\end{columns}
+\end{frame}
+
+\subsection{Arc + LSPB}
+
+\begin{frame}[fragile]{Arc Path + LSPB Trajectory}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Path Planning: Arc (Fixed)}
+\begin{algorithmic}[1]
+\scriptsize
+\For{$i = 0$ to $N-1$}
+    \State $t \gets \frac{i}{N-1}$
+    \State $P[i] \gets (1-t)S + tE$
+    \State $P[i]_z \gets P[i]_z + 4ht(1-t)$
+\EndFor
+\end{algorithmic}
+
+\vspace{0.3cm}
+\textbf{Trajectory: LSPB}
+\begin{algorithmic}[1]
+\scriptsize
+\Require $q_0, q_1, T$, blend time $t_b = 0.3T$
+\If{$t < t_b$}
+    \State $q = q_0 + \frac{1}{2} a t^2$ \Comment{Accel}
+\ElsIf{$t_b \le t \le T - t_b$}
+    \State $q = q_0 + v(t - t_b/2)$ \Comment{Const vel}
+\Else
+    \State $q = q_1 - \frac{1}{2} a(T - t)^2$ \Comment{Decel}
+\EndIf
+\end{algorithmic}
+
+\textbf{Properties:} $C^1$ continuous, efficient
+
+\column{0.5\textwidth}
+\centering
+\movie[width=\textwidth,height=0.6\textheight,poster,showcontrols]{}{traj_arc_lspb.mp4}
+\end{columns}
+\end{frame}
+
+\subsection{Arc + Bang-Bang}
+
+\begin{frame}[fragile]{Arc Path + Bang-Bang Trajectory}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Path Planning: Arc (Fixed)}
+\begin{algorithmic}[1]
+\scriptsize
+\For{$i = 0$ to $N-1$}
+    \State $t \gets \frac{i}{N-1}$
+    \State $P[i] \gets (1-t)S + tE$
+    \State $P[i]_z \gets P[i]_z + 4ht(1-t)$
+\EndFor
+\end{algorithmic}
+
+\vspace{0.3cm}
+\textbf{Trajectory: Bang-Bang}
+\begin{algorithmic}[1]
+\scriptsize
+\Require $q_0, q_1, T$
+\State $\tau \gets \frac{t}{T}$
+\If{$\tau < 0.5$}
+    \State $q = q_0 + 2(q_1-q_0)\tau^2$ \Comment{Accel}
+\Else
+    \State $q = q_1 - 2(q_1-q_0)(1-\tau)^2$ \Comment{Decel}
+\EndIf
+\end{algorithmic}
+
+\textbf{Properties:} $C^0$ continuous, fast but jerky
+
+\column{0.5\textwidth}
+\centering
+\movie[width=\textwidth,height=0.6\textheight,poster,showcontrols]{}{traj_arc_bangbang.mp4}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Trajectory Planning Comparison Summary}
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{|l|c|c|c|}
+\toprule
+\rowcolor{gray!30} \textbf{Algorithm} & \textbf{Smoothness} & \textbf{Obstacle Avoidance} & \textbf{Computation} \\ 
+\midrule
+Linear & Low & No & Very Fast \\ 
+Arc & Medium & Partial & Fast \\ 
+Parabolic & High & Good & Fast \\ 
+RRT & Variable & Excellent & Slow \\ 
+\bottomrule
+\end{tabular}
+\caption{Comparison of Path Planning Algorithms}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Quintic:} Best for precision tasks requiring smooth motion
+    \item \textbf{Cubic:} Good balance of smoothness and computation
+    \item \textbf{LSPB:} Efficient for simple point-to-point motion
+    \item \textbf{Bang-Bang:} Fastest execution time but causes jerk
+\end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Key Findings}
+\begin{block}{Path Planning}
+\begin{itemize}
+    \item Choice depends on workspace complexity and obstacle presence
+    \item RRT excels in cluttered environments but is computationally expensive
+    \item Simple paths (linear, arc) sufficient for open workspaces
+\end{itemize}
+\end{block}
+
+\begin{block}{Trajectory Planning}
+\begin{itemize}
+    \item Higher-order polynomials provide smoother motion
+    \item Trade-off between smoothness and computational efficiency
+    \item Bang-Bang suitable only when high jerk is acceptable
+\end{itemize}
+\end{block}
+
+
+\end{frame}
+
+\begin{frame}
+\centering
+\Huge Thank You!
+\vspace{1cm}
+
+\end{frame}
+
+\end{document}

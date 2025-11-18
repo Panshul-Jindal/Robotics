@@ -1,0 +1,271 @@
+\documentclass[11pt]{beamer}
+\usetheme{Madrid}
+\usefonttheme{serif}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{media9}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{navigation symbols}{}
+
+\author[  ]{AI4000 Robotics \\ by Dr. R. Prasanth Kumar}
+\title{PUMA 560 Manipulator Project}
+\institute[]{Indian Institute Of Technology, Hyderabad}
+\date{November 7th, 2025}
+
+\bibliographystyle{apalike}
+
+\begin{document}
+
+%----------------------------------------------------------
+\begin{frame}
+\titlepage
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+%----------------------------------------------------------
+\section{Introduction}
+
+\begin{frame}{Introduction}
+\begin{itemize}
+    \item The \textbf{PUMA 560 (Programmable Universal Machine for Assembly)} is a six-degree-of-freedom industrial manipulator.
+    \item Goal: Develop a complete mathematical model including:
+    \begin{itemize}
+        \item Forward and inverse kinematics
+        \item Dynamics
+        \item Trajectory and path planning
+    \end{itemize}
+    \item The manipulator will execute a simple pick-and-place task in a physics-based simulator (e.g., MuJoCo).
+    \item This presentation focuses on the \textbf{Forward Kinematics} derivation using the Denavit-Hartenberg (DH) convention.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\section{The PUMA 560 Manipulator}
+
+\begin{frame}{The PUMA 560 Manipulator}
+\begin{itemize}
+    \item A six-DOF serial manipulator with revolute joints.
+    \item Composed of:
+    \begin{itemize}
+        \item Base, shoulder, and elbow - responsible for positioning.
+        \item Wrist - controls end-effector orientation.
+    \end{itemize}
+\end{itemize}
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.4\textwidth]{PUMA 560.png}
+    \caption{PUMA 560 manipulator}
+\end{figure}
+\end{frame}
+
+%----------------------------------------------------------
+\section{Schematic and Coordinate Frames}
+
+\begin{frame}{Schematic and Coordinate Frames}
+Coordinate frames are assigned according to the \textbf{Denavit–Hartenberg} convention.
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.46\textwidth]{sv_with_Axis.png}
+    \caption{Assigned frames for the PUMA 560 arm}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Schematic (Wrist Section)}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{sv_with_axis_2.png}
+    \caption{Assigned coordinate frames for the wrist joints}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Schematic (Wrist Section)}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.7\textwidth]{better_view_of_wrist.png}
+    \caption{Simplified schematic of wrist joint arrangement}
+\end{figure}
+\end{frame}
+
+%----------------------------------------------------------
+\section{Denavit-Hartenberg Parameters}
+
+\begin{frame}{Denavit-Hartenberg Parameters}
+\begin{itemize}
+    \item The DH convention defines each link using:
+    \[
+    (a_i, \alpha_i, d_i, \theta_i)
+    \]
+    \item The following table shows the DH parameters for the PUMA 560 manipulator.
+\end{itemize}
+
+\begin{table}[htb]
+\centering
+\caption{Denavit–Hartenberg parameters of PUMA 560}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+Link $i$ & $\alpha_{i}$ (deg) & $a_{i}$ (m) & $d_i$ (m) & $\theta_i$ (rad) \\ \midrule
+1 & $90$     & $a_1$   & $d_1$      & $\theta_1$ \\
+2 & $0$   & $a_2$   & $d_2$      & $\theta_2$ \\
+3 & $-90$     & $0$ & $0$    & $\theta_3$ \\
+4 & $90$   & $0$ & $d_4$    & $\theta_4$ \\
+5 & $-90$    & $0$   & $0$      & $\theta_5$ \\
+6 & $0$   & $0$   & $d_6$      & $\theta_6$ \\ 
+\bottomrule
+\end{tabular}
+\end{table}
+\end{frame}
+
+%----------------------------------------------------------
+\section{Homogeneous Transformation Matrices}
+
+\begin{frame}{Transformation Matrices (1-3)}
+
+The homogeneous transformation matrices are derived from the DH parameters.
+
+\[
+A_1 =
+\begin{bmatrix}
+\cos\theta_1 & 0 & \sin\theta_1 & 0 \\
+\sin\theta_1 & 0 & -\cos\theta_1 & 0 \\
+0 & 1 & 0 & d_1 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\quad
+A_2 =
+\begin{bmatrix}
+\cos\theta_2 & -\sin\theta_2 & 0 & a_2\cos\theta_2 \\
+\sin\theta_2 & \cos\theta_2 & 0 & a_2\sin\theta_2 \\
+0 & 0 & 1 & d_2 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\[
+A_3 =
+\begin{bmatrix}
+\cos\theta_3 & 0 & -\sin\theta_3 & a_3\cos\theta_3 \\
+\sin\theta_3 & 0 & \cos\theta_3  & a_3\sin\theta_3 \\
+0 & -1 & 0 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\end{frame}
+
+\begin{frame}{Transformation Matrices (4-6)}
+
+\[
+A_4 =
+\begin{bmatrix}
+\cos\theta_4 & 0 & \sin\theta_4 & 0 \\
+\sin\theta_4 & 0 & -\cos\theta_4 & 0 \\
+0 & 1 & 0 & d_4 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\[
+A_5 =
+\begin{bmatrix}
+\cos\theta_5 & 0 & -\sin\theta_5 & 0 \\
+\sin\theta_5 & 0 & \cos\theta_5 & 0 \\
+0 & -1 & 0 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\[
+A_6 =
+\begin{bmatrix}
+\cos\theta_6 & -\sin\theta_6 & 0 & 0 \\
+\sin\theta_6 & \cos\theta_6  & 0 & 0 \\
+0 & 0 & 1 & d_6 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+\end{frame}
+
+
+%----------------------------------------------------------
+\section{Forward Kinematics Result}
+
+\begin{frame}{Resulting Forward Kinematics}
+\[
+{}^{0}\!T_6 = T_1 \, T_2 \, T_3 \, T_4 \, T_5 \, T_6
+\]
+\begin{block}{Final Transformation}
+\[
+{}^{0}\!T_6 =
+\begin{bmatrix}
+R_{0}^{6} & p_{0}^{6} \\
+0 & 1
+\end{bmatrix}
+\]
+where $R_{0}^{6}$ is the rotation matrix (orientation) and $p_{0}^{6}$ is the position vector.
+\end{block}
+\end{frame}
+
+\begin{frame}{Workspace of PUMA 560}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.45\textwidth]{Workspace-of-the-wrist-point-of-the-PUMA-560.png}
+    \caption{Workspace of the wrist point of the PUMA 560}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Animated Workspace of wrist point}
+\begin{itemize}
+    \item Use \textbf{Okular in Linux} or \textbf{Adobe Acrobat in Windows} to view
+\end{itemize}
+    \centering
+    \includemedia[
+        width=0.8\linewidth,
+        height=0.6\linewidth,
+        activate=pageopen,
+        addresource=puma560_workspace-3d.mp4,
+        flashvars={
+            source=puma560_workspace-3d.mp4
+            &autoPlay=true
+            &loop=true
+        }
+        ]{}{VPlayer.swf}
+\end{frame}
+
+%----------------------------------------------------------
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+\begin{itemize}
+    \item Derived the homogeneous transformation matrices for all six joints.
+    \item Established the overall forward kinematic model ${}^{0}\!T_6$.
+    \item This model defines the end-effector’s position and orientation as functions of six joint variables.
+    \item Future work:
+    \begin{itemize}
+        \item Inverse kinematics
+        \item Dynamics modeling
+        \item Trajectory and path planning in simulation
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}
+\centering
+\Huge Thank You!\\[1em]
+\end{frame}
+
+\end{document}
