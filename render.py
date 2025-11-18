@@ -77,7 +77,7 @@ def main():
     
     # Strategy 2: All interpolation types with one path
     print(f"\n{'#'*70}")
-    print(f"# Strategy 2: All interpolation types with RRT path")
+    print(f"# Strategy 2: All interpolation types with arc path")
     print(f"{'#'*70}")
     
     for interp in interp_types:
