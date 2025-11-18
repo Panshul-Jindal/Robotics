@@ -1,3 +1,19 @@
+"""Simulate trajectory playback for the Puma560 robot.
+
+This script plans a Cartesian path, solves inverse kinematics for
+coarse waypoints, interpolates a smooth joint-space trajectory, and
+plays it back in MuJoCo. It can run headless for faster rendering and
+record an offscreen video if mediapy is installed.
+
+Key concepts:
+- Path generation: delegated to `path_planning.generate_cartesian_path`.
+- IK solving: uses `ikpy.Chain` to solve for joint angles at waypoints.
+- Trajectory interpolation: delegated to `trajectory_planning.interpolate_trajectory`.
+- Rendering/recording: uses MuJoCo renderer for offscreen capture.
+
+Only comments and docstrings were added; no runtime logic was modified.
+"""
+
 import numpy as np
 import mujoco
 import mujoco.viewer
@@ -10,6 +26,9 @@ from ikpy.chain import Chain
 import argparse
 from collections import deque
 
+# mediapy is optional; it is only required when the user requests video
+# output. We set a flag so the rest of the script can gracefully disable
+# video capture when mediapy isn't present.
 try:
     import mediapy as media
     MEDIAPY_AVAILABLE = True
@@ -18,10 +37,13 @@ except ImportError:
     print("Install with: pip install mediapy")
     MEDIAPY_AVAILABLE = False
 
+# Project helpers: path generation and trajectory interpolation routines
 from path_planning import generate_cartesian_path
 from trajectory_planning import interpolate_trajectory
 
-# --------- Parse Command Line Arguments ----------
+# --------- Parse command-line arguments ----------
+# The script supports choosing the path planner, interpolation method,
+# output video settings, and whether to run headless (no interactive viewer).
 parser = argparse.ArgumentParser(description='Robot trajectory planning and execution')
 parser.add_argument('--path-type', '-p', type=str, default='rrt',
                     choices=['linear', 'arc', 'circular', 'parabolic', 'rrt'],
@@ -42,25 +64,28 @@ parser.add_argument('--no-display', action='store_true',
 
 args = parser.parse_args()
 
-# --------- CONFIG ----------
+# --------- Configuration ----------
+# File locations for URDF / MJCF and mesh directory. The URDF is used
+# for inverse kinematics with ikpy while the MJCF is used for MuJoCo
+# visualization and rendering (meshes in MJCF need absolute paths).
 URDF = "puma560_description/urdf/puma560_robot.urdf"
 MJCF = "puma560_description/urdf/puma560_robot.xml"
 MESH_DIR = "puma560_description/meshes"
 BASE_ELEMENT = ['link1']
 
-# trajectory params
+# Trajectory parameters (tweak these to change behavior)
 cart_start = np.array([0.3, -0.5, 0.2])
-cart_end   = np.array([0.4, -0.6, 1])
+cart_end = np.array([0.4, -0.6, 1])
 path_type = args.path_type
 interp_type = args.interp_type
 coarse_points = 15       # number of IK solves along path (coarse)
-frames = 6000             # total frames to play out
-dt = 0.001                # seconds per render step (sleep); adjust with viewer rate
-max_joint_vel = 1.5       # rad/s (per joint) — tune to reduce jerk
-use_pd_control = False    # if True we'll output desired qpos and you can adapt to your actuators
-show_planned_path = True  # Show the planned path before execution
+frames = 6000            # total frames to play out (simulation steps)
+dt = 0.001               # seconds per simulation step (used for sleep rate)
+max_joint_vel = 1.5      # rad/s (per joint) — used to cap per-step motion
+use_pd_control = False   # placeholder: if True, output qpos to be used by actuators
+show_planned_path = True # display planned Cartesian waypoints in MJCF
 
-# Video settings
+# Video settings: only enable recording if mediapy is available
 save_video = MEDIAPY_AVAILABLE
 if not MEDIAPY_AVAILABLE and args.output:
     print("Warning: Cannot save video without mediapy. Install with: pip install mediapy")
@@ -95,47 +120,60 @@ print(f"  Headless mode: {args.no_display}")
 
 
 def fix_mjcf_mesh_paths(original_mjcf, mesh_dir, start_pos=None, end_pos=None, planned_path=None, offscreen_width=1280, offscreen_height=720):
-    """Create a temporary MJCF file with absolute mesh paths and trajectory markers."""
+    """Create a temporary MJCF with absolute mesh paths and optional visual markers.
+
+    MuJoCo's MJCF mesh 'file' attributes are commonly relative; when
+    rendering offscreen we prefer absolute paths. This function also
+    optionally injects small visual markers for the start/end points and
+    the planned Cartesian waypoints (spheres) and connects them with
+    cylinders so the path is visible in the scene.
+
+    Returns:
+        tmp_mjcf (str): path to a temporary MJCF file to load into MuJoCo.
+        tmpdir (str): directory containing the temporary MJCF (caller should cleanup).
+    """
     tree = ET.parse(original_mjcf)
     root = tree.getroot()
-    
-    # Add or update visual settings for offscreen rendering
+
+    # Ensure a <visual><global .../> block exists so we can set offscreen size
     visual = root.find('visual')
     if visual is None:
         visual = ET.SubElement(root, 'visual')
-    
+
     global_visual = visual.find('global')
     if global_visual is None:
         global_visual = ET.SubElement(visual, 'global')
-    
-    # Set offscreen buffer size
+
+    # Configure offscreen buffer size for renderer
     global_visual.set('offwidth', str(offscreen_width))
     global_visual.set('offheight', str(offscreen_height))
-    
+
+    # Convert mesh file attributes to absolute paths pointing into mesh_dir
     abs_mesh_dir = os.path.abspath(mesh_dir)
-    
     for mesh in root.iter('mesh'):
         if 'file' in mesh.attrib:
             filename = os.path.basename(mesh.attrib['file'])
             mesh.attrib['file'] = os.path.join(abs_mesh_dir, filename)
-    
+
+    # Ensure worldbody exists so we can attach markers
     worldbody = root.find('worldbody')
     if worldbody is None:
         worldbody = ET.SubElement(root, 'worldbody')
-    
+
+    # Add simple sphere geoms for start/end
     if start_pos is not None:
         pos_str = f"{start_pos[0]} {start_pos[1]} {start_pos[2]}"
         start_body = ET.SubElement(worldbody, 'body', name='start_marker', pos=pos_str)
         ET.SubElement(start_body, 'geom', type='sphere', size='0.03', 
                      rgba='0 1 0 0.8', contype='0', conaffinity='0')
-    
+
     if end_pos is not None:
         pos_str = f"{end_pos[0]} {end_pos[1]} {end_pos[2]}"
         end_body = ET.SubElement(worldbody, 'body', name='end_marker', pos=pos_str)
         ET.SubElement(end_body, 'geom', type='sphere', size='0.03',
                      rgba='1 0 0 0.8', contype='0', conaffinity='0')
-    
-    # Add planned path visualization
+
+    # Add small spheres for planned waypoints and connect consecutive ones
     if planned_path is not None:
         for i, point in enumerate(planned_path):
             body = ET.SubElement(worldbody, 'body', 
@@ -147,21 +185,22 @@ def fix_mjcf_mesh_paths(original_mjcf, mesh_dir, start_pos=None, end_pos=None, p
                          rgba='1 1 0 0.6',
                          contype='0', 
                          conaffinity='0')
-        
-        # Connect waypoints with cylinders
+
+        # Connect consecutive waypoints with thin cylinders for visualization
         for i in range(len(planned_path) - 1):
             p1 = planned_path[i]
             p2 = planned_path[i + 1]
             midpoint = (p1 + p2) / 2
             direction = p2 - p1
             length = np.linalg.norm(direction)
-            
+
             if length > 0.001:
                 direction = direction / length
                 z_axis = np.array([0, 0, 1])
                 axis = np.cross(z_axis, direction)
                 axis_len = np.linalg.norm(axis)
-                
+
+                # Compute quaternion for cylinder orientation (fallback to identity)
                 if axis_len > 0.001:
                     axis = axis / axis_len
                     angle = np.arccos(np.clip(np.dot(z_axis, direction), -1, 1))
@@ -170,7 +209,7 @@ def fix_mjcf_mesh_paths(original_mjcf, mesh_dir, start_pos=None, end_pos=None, p
                     quat_str = f"{qw} {qx} {qy} {qz}"
                 else:
                     quat_str = "1 0 0 0"
-                
+
                 body = ET.SubElement(worldbody, 'body',
                                     name=f'planned_path_seg_{i}',
                                     pos=f"{midpoint[0]} {midpoint[1]} {midpoint[2]}",
@@ -181,11 +220,11 @@ def fix_mjcf_mesh_paths(original_mjcf, mesh_dir, start_pos=None, end_pos=None, p
                              rgba='1 0.7 0 0.5',
                              contype='0',
                              conaffinity='0')
-    
+
     tmpdir = tempfile.mkdtemp()
     tmp_mjcf = os.path.join(tmpdir, "robot_temp.xml")
     tree.write(tmp_mjcf)
-    
+
     return tmp_mjcf, tmpdir
 
 
