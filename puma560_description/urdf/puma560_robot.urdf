@@ -21,7 +21,7 @@
       <origin rpy="0 0 1.570796325"/>
       <material name="green"/>
     </visual>
-    <!-- NOTE: Base link is static, so inertial properties are not strictly required for the simulation to run -->
+    <!-- Here, Base link is static, so inertial properties are not strictly required for the simulation to run -->
   </link>
   <link name="link2">
     <visual>
@@ -161,10 +161,10 @@
     <axis xyz="0 0 1"/>
     <limit effort="1000.0" lower="-1.570796325" upper="1.570796325" velocity="0"/>
   </joint>
-  <!-- ... (all your existing link and joint definitions) ... -->
-  <!-- ========================================================== -->
-  <!-- |           TRANSMISSIONS (ACTUATORS)                    | -->
-  <!-- ========================================================== -->
+  <!-- ... (all our existing link and joint definitions) ...       -->
+  <!-- ==========================================================  -->
+  <!-- |           TRANSMISSIONS (ACTUATORS)                    |  -->
+  <!-- ==========================================================  -->
   <!-- These tags tell the simulator that the joints are motorized -->
   <transmission name="tran1">
     <type>hardware_interface/PositionJointInterface</type>

@@ -1,16 +1,13 @@
 import numpy as np
 
 def simple_rrt_cartesian(start, goal, n_waypoints=15, max_iterations=500, step_size=0.1):
-    """
-    Simple RRT in Cartesian space to find collision-free path.
-    This is a basic implementation - for production use pybullet-planning or OMPL.
-    """
+
     print("Running RRT path planning in Cartesian space...")
     
     # Simple obstacle check (you can extend this)
     def is_valid(point):
         # Check workspace bounds
-        if point[2] < 0.1:  # Don't go below z=0.1
+        if point[2] < 0.1:  # NO going below z=0.1
             return False
         if np.linalg.norm(point[:2]) > 1.0:  # Stay within radius
             return False
@@ -77,9 +74,6 @@ def simple_rrt_cartesian(start, goal, n_waypoints=15, max_iterations=500, step_s
 
 
 def generate_cartesian_path(start, end, n_points, path_type="linear"):
-    """
-    Generate better Cartesian space paths between start and end points.
-    """
     if path_type == "linear":
         print("Using linear path in Cartesian space")
         return np.linspace(start, end, n_points)

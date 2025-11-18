@@ -1,18 +1,3 @@
-"""Simulate trajectory playback for the Puma560 robot.
-
-This script plans a Cartesian path, solves inverse kinematics for
-coarse waypoints, interpolates a smooth joint-space trajectory, and
-plays it back in MuJoCo. It can run headless for faster rendering and
-record an offscreen video if mediapy is installed.
-
-Key concepts:
-- Path generation: delegated to `path_planning.generate_cartesian_path`.
-- IK solving: uses `ikpy.Chain` to solve for joint angles at waypoints.
-- Trajectory interpolation: delegated to `trajectory_planning.interpolate_trajectory`.
-- Rendering/recording: uses MuJoCo renderer for offscreen capture.
-
-Only comments and docstrings were added; no runtime logic was modified.
-"""
 
 import numpy as np
 import mujoco
@@ -26,9 +11,7 @@ from ikpy.chain import Chain
 import argparse
 from collections import deque
 
-# mediapy is optional; it is only required when the user requests video
-# output. We set a flag so the rest of the script can gracefully disable
-# video capture when mediapy isn't present.
+
 try:
     import mediapy as media
     MEDIAPY_AVAILABLE = True
@@ -41,7 +24,7 @@ except ImportError:
 from path_planning import generate_cartesian_path
 from trajectory_planning import interpolate_trajectory
 
-# --------- Parse command-line arguments ----------
+# --------- command-line arguments ----------
 # The script supports choosing the path planner, interpolation method,
 # output video settings, and whether to run headless (no interactive viewer).
 parser = argparse.ArgumentParser(description='Robot trajectory planning and execution')
@@ -64,10 +47,7 @@ parser.add_argument('--no-display', action='store_true',
 
 args = parser.parse_args()
 
-# --------- Configuration ----------
-# File locations for URDF / MJCF and mesh directory. The URDF is used
-# for inverse kinematics with ikpy while the MJCF is used for MuJoCo
-# visualization and rendering (meshes in MJCF need absolute paths).
+# Configuration 
 URDF = "puma560_description/urdf/puma560_robot.urdf"
 MJCF = "puma560_description/urdf/puma560_robot.xml"
 MESH_DIR = "puma560_description/meshes"
@@ -85,7 +65,7 @@ max_joint_vel = 1.5      # rad/s (per joint) — used to cap per-step motion
 use_pd_control = False   # placeholder: if True, output qpos to be used by actuators
 show_planned_path = True # display planned Cartesian waypoints in MJCF
 
-# Video settings: only enable recording if mediapy is available
+# only enable recording if mediapy is available
 save_video = MEDIAPY_AVAILABLE
 if not MEDIAPY_AVAILABLE and args.output:
     print("Warning: Cannot save video without mediapy. Install with: pip install mediapy")
@@ -120,18 +100,7 @@ print(f"  Headless mode: {args.no_display}")
 
 
 def fix_mjcf_mesh_paths(original_mjcf, mesh_dir, start_pos=None, end_pos=None, planned_path=None, offscreen_width=1280, offscreen_height=720):
-    """Create a temporary MJCF with absolute mesh paths and optional visual markers.
 
-    MuJoCo's MJCF mesh 'file' attributes are commonly relative; when
-    rendering offscreen we prefer absolute paths. This function also
-    optionally injects small visual markers for the start/end points and
-    the planned Cartesian waypoints (spheres) and connects them with
-    cylinders so the path is visible in the scene.
-
-    Returns:
-        tmp_mjcf (str): path to a temporary MJCF file to load into MuJoCo.
-        tmpdir (str): directory containing the temporary MJCF (caller should cleanup).
-    """
     tree = ET.parse(original_mjcf)
     root = tree.getroot()
 
@@ -228,7 +197,7 @@ def fix_mjcf_mesh_paths(original_mjcf, mesh_dir, start_pos=None, end_pos=None, p
     return tmp_mjcf, tmpdir
 
 
-# --------- load models -----------
+# load models
 print(f"\n{'='*60}")
 print(f"LOADING MODELS")
 print(f"{'='*60}")
@@ -245,7 +214,7 @@ print(f"  Path type: {path_type}")
 
 cart_points = generate_cartesian_path(cart_start, cart_end, coarse_points, path_type)
 
-print(f"\nFixing MJCF mesh paths and adding visualizations...")
+print(f"\nFixing MJCF mesh paths and adding visualizations\n")
 tmp_mjcf, tmpdir = fix_mjcf_mesh_paths(
     MJCF, MESH_DIR, cart_start, cart_end, 
     cart_points if show_planned_path else None,
@@ -308,7 +277,7 @@ def active_to_full_qpos(active_q):
     return qpos
 
 
-# ========== SET INITIAL CONFIGURATION TO START POINT ==========
+# INITIAL CONFIGURATION SET AS START POINT
 print(f"\n{'='*60}")
 print(f"SETTING INITIAL CONFIGURATION")
 print(f"{'='*60}")
@@ -334,8 +303,6 @@ if ee_error > 0.01:
 else:
     print(f"✓ Robot positioned at start point successfully")
 
-# Now the trajectory starts from this configuration (no need to prepend)
-# The first waypoint in q_coarse is already the start, so we use it as-is
 
 # Create time vectors
 n_coarse = q_coarse.shape[0]
@@ -522,7 +489,6 @@ if save_video and len(video_frames) > 0:
     print(f"{'='*60}")
     print(f"Writing {len(video_frames)} frames to {video_filename}...")
     try:
-        # Ensure frames directory exists
         os.makedirs(os.path.dirname(video_filename), exist_ok=True)
         
         # Convert to numpy array for mediapy
@@ -531,22 +497,22 @@ if save_video and len(video_frames) > 0:
         print(f"Video array dtype: {video_array.dtype}")
         
         media.write_video(video_filename, video_array, fps=video_fps)
-        print(f"✓ Video saved successfully!")
+        print(f"\nVideo saved successfully!")
         
         if os.path.exists(video_filename):
             file_size = os.path.getsize(video_filename) / (1024 * 1024)
             print(f"  File size: {file_size:.2f} MB")
             print(f"  Location: {os.path.abspath(video_filename)}")
         else:
-            print(f"⚠ Warning: Video file not found after writing")
+            print(f"\n!!Warning!!: Video file not found after writing")
     except Exception as e:
-        print(f"✗ Error saving video: {e}")
+        print(f"\nFAILED: Error saving video: {e}")
         print(f"  Frames captured: {len(video_frames)}")
         print(f"  Frame shape: {video_frames[0].shape if video_frames else 'N/A'}")
         import traceback
         traceback.print_exc()
 elif save_video:
-    print(f"\n⚠ Warning: No video frames were captured")
+    print(f"\n!!Warning!!: No video frames were captured")
     print(f"  Check that renderer was initialized correctly")
 
-print(f"\n✓ Trajectory playback finished!")
+print(f"\n Trajectory playback finished!")

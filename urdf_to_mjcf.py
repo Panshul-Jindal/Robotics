@@ -1,7 +1,7 @@
 import mujoco
 import os
-urdf_path = "puma560_description/urdf/puma560_robot.urdf"  # Replace with the actual path to your URDF file
-output_mjcf_path = "puma560_description/urdf/puma560_robot.xml" # Replace with desired output path
+urdf_path = "puma560_description/urdf/puma560_robot.urdf"  
+output_mjcf_path = "puma560_description/urdf/puma560_robot.xml"
 try:
     # Load the URDF model
     model = mujoco.MjModel.from_xml_path(urdf_path)

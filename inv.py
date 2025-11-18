@@ -1,7 +1,7 @@
-# --- replace ikpy usage: read-only MJCF-based IK helpers ---
 import math
 import numpy as np
 import mujoco
+
 def _safe_sqrt(x):
     return math.sqrt(max(0.0, x))
 
@@ -9,16 +9,10 @@ def _atan2(y,x):
     return math.atan2(y,x)
 
 def infer_params_from_mjcf(mj_model, verbose=False):
-    """
-    Heuristically infer PUMA-like link parameters from a loaded MjModel.
-    Returns dict with a1,a2,a3,d1,d2,d4,d6 (some may be None).
-    This uses body positions (model.body_pos) and site positions (model.site_pos)
-    if present. These are heuristics and should be checked against your MJCF.
-    """
+
     params = {"a1": None, "a2": None, "a3": None, "d1": None, "d2": None, "d4": None, "d6": None}
 
     try:
-        # model.nbody, model.body_pos exist in mujoco MjModel
         nbody = int(mj_model.nbody)
         # model.body_pos is shape (nbody,3) absolute positions in parent body frame
         body_pos = np.array(mj_model.body_pos).reshape((nbody, 3))
@@ -28,11 +22,11 @@ def infer_params_from_mjcf(mj_model, verbose=False):
         if verbose:
             print("bodies:", body_names)
 
-        # Try to find typical PUMA bodies by searching names
+        # Trying to find typical PUMA bodies by searching names
         # common names: base, link1, link2, link3, link4, link5, link6, wrist, ee
         name_map = {n.lower(): i for i, n in enumerate(body_names)}
-        # heuristic: pick the first few movable links as a1,a2,a3 distances
-        # choose indices in order of appearance (skip 'world' at index 0)
+        # heuristic<=> pick the first few movable links as a1,a2,a3 distances
+        # choosing indices in order of appearance (skiping 'world' at index 0)
         body_idxs = [i for i in range(1, min(nbody, 7))]  # up to link6
         if len(body_idxs) >= 3:
             # compute vector from body i to next body (approx link vector)
@@ -45,10 +39,10 @@ def infer_params_from_mjcf(mj_model, verbose=False):
             params["a3"] = dist23
             # estimate d1 as z of first body (if base has z offset)
             params["d1"] = float(body_pos[body_idxs[0]][2])
-            # d2 often small; estimate from body1 pos y or x if available
+            # d2 often small, estimate from body1 pos y or x if available
             params["d2"] = float(body_pos[body_idxs[0]][1]) if abs(body_pos[body_idxs[0]][1])>1e-6 else 0.0
 
-        # If MJCF defines sites (wrist or ee) use them for d4,d6
+        
         try:
             nsite = int(mj_model.nsite)
             if nsite > 0:
@@ -64,9 +58,9 @@ def infer_params_from_mjcf(mj_model, verbose=False):
         except Exception:
             pass
 
-        # d4 is often link offset between joint3 and joint4; approximate using body distances
+        # d4 is often link offset between joint3 and joint4; approximating using body distances
         if params["a3"] is not None and params["a2"] is not None:
-            # placeholder: set d4 small if not present
+            #,set d4 small if not present
             params["d4"] = params["a3"] * 0.1 if params["d4"] is None else params["d4"]
 
     except Exception as e:
@@ -77,15 +71,6 @@ def infer_params_from_mjcf(mj_model, verbose=False):
 
 
 def inverse_kinematics_custom(target_pos, target_R=None, mj_model=None, mj_data=None, params=None, verbose=False):
-    """
-    Closed-form PUMA-like inverse kinematics that uses only the MuJoCo model (MJCF) if given.
-    - target_pos: [x,y,z]
-    - target_R: optional 3x3 rotation matrix for orientation (if provided)
-    - mj_model: mujoco.MjModel (required for mapping to qpos ordering & to infer params when params None)
-    - mj_data: mujoco.MjData (optional)
-    - params: dict to override inferred params
-    Returns q_full: list of angles matching the active joints order extracted from mj_model.
-    """
     p = np.asarray(target_pos, dtype=float).flatten()
     if p.size != 3:
         raise ValueError("target_pos must be length-3")
@@ -195,8 +180,7 @@ def inverse_kinematics_custom(target_pos, target_R=None, mj_model=None, mj_data=
     # We will fill indices for revolute joints sequentially with q6 values and zeros elsewhere.
     nq = int(mj_model.nq)
     q_full = [0.0]*nq
-    # iterate mj_model.joint(i) for i in range(mj_model.njnt) to find revolute joints and fill
-    # NOTE: mapping depends on your MJCF joint ordering; this is a heuristic
+    # iterating mj_model.joint(i) for i in range(mj_model.njnt) to find revolute joints and fill
     q_idx = 0
     for ji in range(int(mj_model.njnt)):
         j = mj_model.joint(ji)
@@ -218,14 +202,11 @@ def inverse_kinematics_custom(target_pos, target_R=None, mj_model=None, mj_data=
 
     return q_full
 
-# ---------------- Example: compute IK for one example position ----------------
+# Example compute IK 
 # Example end-effector position (meters)
 target_pos = [0.5, 0.0, 0.4]
 
-# PUMA-like parameters (adjust these to match your MJCF exactly if you have the true values)
-# NOTE: the MJCF-based inverse_kinematics_custom expects params keys:
-#   a1, a2, a3, d1, d2, d4, d6
-# Earlier notes used d3 in the URDF form — here we place that offset into d2
+
 params_example = {
     "a1": 0.0,        # base x-offset
     "a2": 0.4318,     # typical PUMA a2 (m)
@@ -235,13 +216,6 @@ params_example = {
     "d4": 0.4318,     # wrist offset (example)
     "d6": 0.0         # end-effector tool length (0 if none)
 }
-
-# If you don't want to rely on MJCF inference, pass params_example explicitly.
-# Call IK (use mj_model=model and mj_data=data if available)
-
-
-
-
 
 MJCF = "puma560_description/urdf/puma560_robot.xml"
 model = mujoco.MjModel.from_xml_path(MJCF)
@@ -275,4 +249,3 @@ q_full = inverse_kinematics_custom(
 )
 
 print("\nIK q_full:", q_full)
-

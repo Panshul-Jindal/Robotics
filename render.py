@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""
-Batch script to render multiple trajectory configurations
-Usage: python batch_render.py
-"""
 
 import subprocess
 import os
@@ -44,7 +40,6 @@ def run_trajectory(path_type, interp_type, output_file, fps=30, headless=True):
 
 def main():
     """Main batch rendering function."""
-    
     # Create output directory
     output_dir = Path("videos")
     output_dir.mkdir(exist_ok=True)
@@ -113,7 +108,7 @@ def main():
     failed = len(results) - successful
     
     for path, interp, success in results:
-        status = "✓" if success else "✗"
+        status = " SUCESSFUL " if success else " FAILED "
         print(f"  {status} {path:12s} + {interp:10s}")
     
     print(f"\nTotal: {len(results)} renderings")
@@ -121,9 +116,9 @@ def main():
     print(f"Failed: {failed}")
     
     # List generated files
-    print(f"\n{'='*70}")
+    print('='*70)
     print(f"Generated video files:")
-    print(f"{'='*70}")
+    print('='*70)
     
     video_files = sorted(output_dir.glob("*.mp4"))
     if video_files:
@@ -133,10 +128,10 @@ def main():
     else:
         print("  No video files found")
     
-    print(f"\n✓ Batch rendering complete!")
+    print(f"\n SUCCESFULL Batch rendering complete!")
     
     return 0 if failed == 0 else 1
 
-
+# %%
 if __name__ == "__main__":
     sys.exit(main())
